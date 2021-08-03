@@ -34,8 +34,8 @@
                     <tr v-if="trueRoomId">
                       <td colspan="2" @click="OutRoom">退出房间</td>
                     </tr>
-                    <tr>
-                      <td colspan="2" @click="GetUserList">获取好友列表</td>
+                    <tr v-if="trueRoomId">
+                      <td colspan="2" @click="GetUserList" >获取好友列表</td>
                     </tr>
                     
                     <tr @click="startChat(item)" class="min" v-for="item in userList" :key="item.index">
@@ -50,16 +50,16 @@
                       </template>
                     </tr>
 
-                    <tr>
+                    <tr v-if="trueRoomId">
                       <td @click="OpenCamera">打开摄像头</td><td @click="OPenMicrophones">打开麦克风</td>
                     </tr>
-                    <tr>
+                    <tr v-if="trueRoomId">
                       <td @click="CloseCamera">关闭摄像头</td><td @click="CloseMicrophones">关闭麦克风</td>
                     </tr>
-                    <tr>
+                    <tr v-if="trueRoomId">
                       <td>录制己方视频</td><td>录制对方视频</td>
                     </tr>
-                    <tr>
+                    <tr v-if="trueRoomId">
                       <td >结束录制</td>
                       <td><span>位置：</span></td>
                     </tr>
@@ -70,33 +70,38 @@
                   </tbody>
                 </table>
             </div>
-            <div class="main-right-box box">
+            <div class="main-right-box box" id="Camera">
               
             </div>
           </div>
           <div class="foot-content content">
-            <div  class="foot-left-box box">
+            <div  class="foot-left-box box" id="Camera2"> 
 
             </div>
             <div  class="foot-right-box box">
               <div class="foot-right-box-head" v-show="content.isCall">
                   userId:{{content.uid}}
               </div>
-              <table v-show="content.isCall" style="height: 60%;">
-                <tr v-for="item in content.textarea" :key="item.index">
-                  <td>{{item}}</td>
-                </tr>
-              </table>
+
+              <div style="height: 60%;overflow-x:auto;">
+                <table v-show="content.isCall" style="width:100%">
+                  <tr v-for="item in content.textarea" :key="item.index">
+                    <td style="height: 13px;font-size:13px;width:100%">{{item}}</td>
+                  </tr>
+                </table>
+              </div>
+              
               <div class="foot-right-box-foot" v-show="content.isCall">
-                <table >
+                <table style="width:100%">
                   <tr>
-                    <td>发送信息：</td><td><input type="text" class="input-style" v-model="chatText"></td>
+                    <td>发送信息：</td>
+                    <td><input type="text" class="input-style" v-model="chatText"></td>
                     <td><button class="btn-style" @click="SendMsg()">发送</button></td>
                   </tr>
                   <tr>
                     <td class="btn-style" @click="Call(content.uid)">视频呼叫</td>
-                    <td v-show="content.isMVCall" class="btn-style" @click="Hangup(content.uid)">取消呼叫</td>
-                    <td v-show="content.isMVCall" class="btn-style" @click="Cancel(content.uid)">挂断</td>
+                    <td v-show="content.isMVCall" class="btn-style" @click="Cancel(content.uid)">取消呼叫</td>
+                    <td v-show="content.isMVCall" class="btn-style" @click="Hangup(content.uid)">挂断</td>
                   </tr>
                 </table>
               </div>
@@ -113,8 +118,7 @@
 
 export default {
   name: 'Home',
-  data() {
-    
+  data() { 
     return{
       mDefaultServerAddr : "demo.anychat.cn",
       mDefaultServerPort : 8906,
@@ -136,13 +140,45 @@ export default {
 
       isToken:false,
 
+      istextR:false,
       chatText:'',
+
+      roomOpt: {
+        // onRoomUserInAndOut: onAnyChatUserAtRoom,   //用户进出房间通知事件
+        // onRoomUserChanged: onAnyChatRoomOnlineUser,   //房间用户数变化通知事件
+        // onRoomUserMsgReceived: onAnyChatUserMsgAtRoom //接收房间内的文本消息通知事件
+      },
+
+      videoCallOpt:{
+        
+        // onReceiveVideoCallRequest: onReceiveVideoCallRequest, //接收视频呼叫请求通知
+        // onReceiveVideoCallStart: onReceiveVideoCallStart, //接收视频呼叫开始通知
+        // onReceiveVideoCallFinish: onReceiveVideoCallFinish, //接收视频呼叫结束通知
+        // onReceiveVideoCallError: onReceiveVideoCallError //接收视频呼叫异常通知
+      }
     }
   },
+  mounted(){
+    //定义房间配置对象roomOpt
+        this.roomOpt = {        
+            onRoomUserInAndOut: this.onAnyChatUserAtRoom,   //用户进出房间通知事件
+            onRoomUserChanged: this.onAnyChatRoomOnlineUser,   //房间用户数变化通知事件
+            onRoomUserMsgReceived: this.onAnyChatUserMsgAtRoom //接收房间内的文本消息通知事件
+        }
 
+        this.videoCallOpt = {
+          //接收视频呼叫请求通知
+          onReceiveVideoCallRequest: this.onReceiveVideoCallRequest,
+          //接收视频呼叫开始通知
+          onReceiveVideoCallStart: this.onReceiveVideoCallStart,
+          //接收视频呼叫结束通知
+          onReceiveVideoCallFinish: this.onReceiveVideoCallFinish,
+          //接收视频呼叫异常通知
+          onReceiveVideoCallError: this.onReceiveVideoCallError
+        }
+  },
   methods:{
     login() {
-      
       const AnyChatWebSDK = window.AnyChatWebSDK
       var nickName = "demo";
       var servereIp = this.mDefaultServerAddr;
@@ -157,94 +193,82 @@ export default {
           onDisConnect: this.onDisConnect,
           onLogin: this.onLogin,
 
-          roomOpt: roomOpt,
-          videoCallOpt: videoCallOpt, 
+          roomOpt: this.roomOpt,
+          videoCallOpt: this.videoCallOpt, 
       };
       
-      //定义房间配置对象roomOpt
-      var roomOpt = {        
-          onRoomUserInAndOut: onAnyChatUserAtRoom,   //用户进出房间通知事件
-          onRoomUserChanged: onAnyChatRoomOnlineUser,   //房间用户数变化通知事件
-          onRoomUserMsgReceived:  onAnyChatUserMsgAtRoom //接收房间内的文本消息通知事件
-      };
-
-       //房间事件回调
-      function onAnyChatUserAtRoom(data) {
-          console.log("用户动作通知："+data.userId,data.action==0?"进入房间":"退出房间",data.roomId);
-          this.content.textarea.push(data.userId,data.action==0?"进入房间":"退出房间")
-          this.GetUserList()
-      }
-      function onAnyChatRoomOnlineUser(data) {
-          console.log("用戶数变化："+data.userNum,data.roomId,data.userList);
-          this.GetUserList()
-      }
-      function onAnyChatUserMsgAtRoom(data) {
-          console.log("信息通知："+data.userId,data.msg);
-          this.content.textarea.push(data.userId,data.msg)
-      }
-
-      var videoCallOpt = {
-        //接收视频呼叫请求通知
-        onReceiveVideoCallRequest: onReceiveVideoCallRequest,
-
-        //接收视频呼叫开始通知
-        onReceiveVideoCallStart: onReceiveVideoCallStart,
-
-        //接收视频呼叫结束通知
-        onReceiveVideoCallFinish: onReceiveVideoCallFinish,
-
-        //接收视频呼叫异常通知
-        onReceiveVideoCallError: onReceiveVideoCallError
-      };
-
-          //接收视频呼叫请求
-    function onReceiveVideoCallRequest(data) {
-        console.log(data.userId,data.userStr);
-        //data.userId 呼叫方用户Id
-        //data.userStr 用户自定义参数
-        if(confirm('用户'+data.userId+'正在呼叫你，是否接受？')==true){
-          this.Accept(data.userId)
-          this.startChat(data.userId)
-
-        }else{
-          this.Reject(data.userId)
-
-        }
-      }
-      //接收视频呼叫开始通知
-      function onReceiveVideoCallStart(data) {
-          console.log(data.userId,data.roomId,data.userStr);
-          //data.userId 对方用户id
-          //data.roomId 系统分配的房间号，呼叫双方进入到该房间，打开自己的摄像头,请求对方的视频流，开始视频通话，具体参见音视频通话接口
-          //data.userStr 用户自定义参数
-      }
-      //接收视频呼叫异常通知
-      function onReceiveVideoCallError(result) {
-          
-          try {
-              window.alert(result.msg);
-          } catch (error) {
-              window.alert("对方已断线");
-          }
-        
-          //result.code 错误码 
-          //result.msg 错误信息
-      }
-      //接收视频呼叫结束通知
-      function onReceiveVideoCallFinish(data) {
-          try {
-            window.alert(data.userId,data.userStr);
-          } catch (error) {
-            window.alert("对方已断线");
-          }
-        
-          //data.userId 对方用户Id
-          //data.userStr 用户自定义参数
-      }
 
       this.instance = AnyChatWebSDK.sdkInit(initParams);
       
     },
+
+    //房间事件回调
+    onAnyChatUserAtRoom(data) {
+        console.log("用户动作通知："+data.userId,data.action==0?"进入房间":"退出房间",data.roomId);
+        var text = data.action==0?"进入房间":"退出房间"
+        this.content.textarea.push(data.userId+':'+text)
+        this.GetUserList()
+    },
+    onAnyChatRoomOnlineUser(data) {
+        console.log("用戶数变化："+data.userNum,data.roomId,data.userList);
+        this.GetUserList()
+    },
+    onAnyChatUserMsgAtRoom(data) {
+        console.log("信息通知："+data.userId,data.msg);
+        this.istextR = false
+        this.startChat(data.userId)
+        this.content.textarea.push(data.userId+':'+data.msg)
+    },
+    
+    //接收视频呼叫请求
+    onReceiveVideoCallRequest(data) {
+      console.log(data.userId,data.userStr);
+      //data.userId 呼叫方用户Id
+      //data.userStr 用户自定义参数
+      if(confirm('用户'+data.userId+'正在呼叫你，是否接受？')==true){
+        this.Accept(data.userId)
+        this.startChat(data.userId)
+      }else{
+        this.Reject(data.userId)
+
+      }
+    },
+    //接收视频呼叫开始通知
+    onReceiveVideoCallStart(data) {
+        console.log(data.userId,data.roomId,data.userStr);
+        this.OPenMicrophones()
+        this.OpenCamera()
+        this.GetVideoStrea(data.userId)
+        this.GetAudioStrea(data.userId)
+        //data.userId 对方用户id
+        //data.roomId 系统分配的房间号，呼叫双方进入到该房间，打开自己的摄像头,请求对方的视频流，开始视频通话，具体参见音视频通话接口
+        //data.userStr 用户自定义参数
+    },
+    //接收视频呼叫异常通知
+    onReceiveVideoCallError(result) {
+        
+        try {
+            window.alert(result.msg);
+        } catch (error) {
+            window.alert("对方已断线");
+        }
+      
+        //result.code 错误码 
+        //result.msg 错误信息
+    },
+    //接收视频呼叫结束通知
+    onReceiveVideoCallFinish(data) {
+        try {
+          window.alert(data.userId,data.userStr);
+        } catch (error) {
+          window.alert("对方已断线");
+        }
+      
+        //data.userId 对方用户Id
+        //data.userStr 用户自定义参数
+    },
+
+
     // 登录事件回调
     onLogin (data) {
         window.alert('登录成功');
@@ -270,6 +294,7 @@ export default {
           
         if (result.code === 0) {
             this.trueRoomId = data.roomId
+            this.GetUserList()
         }
         window.alert(result.msg);
              
@@ -292,6 +317,7 @@ export default {
     // 视频呼叫事件
     Call(uid) {
       var that = this;
+      that.content.isMVCall = true
         try {
             this.instance.requestVideoCall({
                 userId:uid ,//被呼叫方用户ID
@@ -301,7 +327,7 @@ export default {
             window.alert("用户已断线");
         }
         function onRequestVideoCallDone(result) {
-          that.isMVCall = true
+          
           window.alert(result.msg)
           
         }
@@ -329,6 +355,8 @@ export default {
     },
     //挂断
     Hangup(uid) {
+      this.CancelAudioStream(uid)
+      this.CancelVideoStream(uid)
         try {
             this.instance.hangupVideoCall({
                 userId:uid,
@@ -353,9 +381,11 @@ export default {
     //在房间发送信息
     SendMsg() {
         var that = this
-        this.instance.sendMsg({ 
+        that.instance.sendMsg({ 
             msg:that.chatText, 
         });
+        that.istextR = true
+        that.content.textarea.push(that.userid+':'+that.chatText)
     },
 
     // 麦克风
@@ -379,6 +409,31 @@ export default {
         this.instance.getCameras()[0].close();
         console.log("关闭摄像头");
     },
+
+
+    //音视频流操作
+    GetAudioStrea(uid) {
+        this.instance.getRemoteAudioStream({  
+            remoteUserId:uid  
+        });
+    },
+    GetVideoStrea(uid) {
+        this.instance.getRemoteVideoStream({  
+            remoteUserId:uid,
+            renderId:'Camera2'  
+        });
+    },
+    CancelAudioStream(uid) {
+        this.instance.cancelRemoteAudioStream({  
+            remoteUserId:uid  
+        });
+    },
+    CancelVideoStream(uid) {
+        this.instance.cancelRemoteVideoStream({  
+            remoteUserId:uid  
+        });
+    },
+
 
     //登出
     LoginOut() {
@@ -494,6 +549,7 @@ export default {
             -moz-box-shadow: 0px 0px 3px yellowgreen; /* 老的 Firefox */
             box-shadow: 0px 0px 3px yellowgreen; 
             padding: 8px;
+            height: 20px;
           }
           td{
             width: 50%;
@@ -544,6 +600,12 @@ export default {
         .foot-right-box{
             background-image: url(../assets/actBg.png);
              background-size: 100% 100%;
+             .textAling1{
+               text-align: left;
+             }
+             .textAling2{
+               text-align: right;
+             }
              .foot-right-box-head{
                padding: 10px;
                height: 6%;
@@ -557,7 +619,8 @@ export default {
                  height: 30px;
                  line-height: 30px;
                }
-               background-color: bisque;
+               background-color: rgb(179, 237, 245);
+               
              }
 
         } 
